@@ -44,6 +44,7 @@ module.exports = (items, info) => {
                 <tr style="fonrt-size: 14px">
                   <td>
                     <p style="margin-top: 0; margin-bottom: 5px;">${item.title}</p>
+                    <small style="display: block">${item.variations || ""}</small>
                     <small>${item.note || ""}</small>
                   </td>
                   <td>
