@@ -1,0 +1,10 @@
+{
+  "firebase": {
+    "api": "AIzaSyAaUIObi0gv-tAgdfsyR4NNYZU0wOk4PgY",
+    "database": "https://hip-pos-print-default-rtdb.asia-southeast1.firebasedatabase.app"
+  },
+  "printers": {
+    "customer": "XP-80C",
+    "kitchen": "XP-80C"
+  }
+}
