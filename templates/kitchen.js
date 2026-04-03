@@ -4,11 +4,11 @@ module.exports = (items, info) => {
       <head>
         <style>
           body {
-            width: 80mm;
+            width: 70mm;
             margin: 0;
             padding: 0;
             font-family: Arial;
-            font-size: 13px;
+            font-size: 12px;
           }
           table, th, td {
             padding: 5px;
@@ -18,30 +18,30 @@ module.exports = (items, info) => {
         </style>
       </head>
       <body>
-        <div style="padding: 5px">
-          <div style="padding: 5px">
-            <div style="text-align: center; font-size: 16px; margin-bottom: 10px;">
+        <main style="margin: auto;">
+          <div>
+            <div style="text-align: center; font-size: 18px; margin-bottom: 10px;">
                 <strong>Phiếu đặt đồ</strong>
             </div>
-            <div style="margin-bottom: 10px">
+            <div style="margin-bottom: 5px">
                 <strong>Thời gian: </strong>
                 <span>${new Date().toLocaleString("vi-VN")}</span>
             </div>
-            <div style="margin-bottom: 10px">
+            <div>
                 <strong>Hình thức: </strong>
                 <span>${info.table}</span>
             </div>
           </div>
-          <table style="width: 100%; padding: 0">
+          <table style="width: 100%; padding: 0; font-size: 13px">
             <thead>
               <tr>
-                <th style="width: 75%; text-align: start; font-size: 13px">Tên món</th>
-                <th style="width: 25%; font-size: 13px">SL</th>
+                <th style="width: 75%; text-align: start;">Tên món</th>
+                <th style="width: 25%;">SL</th>
               </tr>
             </thead>
-            <tbody style="font-size: 15px">
+            <tbody>
               ${(items || []).map(item => `
-                <tr>
+                <tr style="fonrt-size: 14px">
                   <td>
                     <p style="margin-top: 0; margin-bottom: 5px;">${item.title}</p>
                     <small>${item.note || ""}</small>
@@ -53,7 +53,7 @@ module.exports = (items, info) => {
               `).join("")}
             </tbody>
           </table>
-        </div>
+        </main>
       </body>
     </html>
   `;

@@ -213,7 +213,7 @@ app.get("/config", (req, res) => {
 // =========================
 async function loadImageToBase64(url) {
   if (!url) {
-    return null;
+    return "";
   }
 
   if (imageCache.has(url)) {
@@ -235,7 +235,7 @@ async function loadImageToBase64(url) {
     return result;
   } catch (err) {
     console.error("Load image failed:", err.message);
-    return null;
+    return "";
   }
 }
 

@@ -22,7 +22,7 @@ module.exports = (items, info) => {
 
         <body>
             <main style="margin: auto;">
-                <div style="padding: 5px;">
+                <div>
                     <div style="text-align: center; margin-bottom: 5px;">
                         <span style="display: block; margin-bottom: 5px;">Số đơn hàng</span>
                         <strong style=" font-size: 18px;">HIPS - ${items.order_number}</strong>
@@ -103,7 +103,7 @@ module.exports = (items, info) => {
                         </tr>
                     </tbody>
                 </table>
-                <div style="padding: 5px; text-align: center;">
+                <div style="padding: 5px 0; text-align: center;">
                     <div style="margin-bottom: 5px; font-size: 14px;">
                         <strong>${info.user || ""}</strong>
                     </div>
@@ -111,8 +111,8 @@ module.exports = (items, info) => {
                         <strong>${info.bank || ""}</strong>
                         <span style="margin-left: 3px; font-size: 15px;">${info.number || ""}</span>
                     </div>
-                    <div>
-                        ${info.qr_code != '' ? `<img style="width: 70%; height: auto;" alt="QR Code" src="${info.qr_code}" />` : ''}
+                    <div style="width: 70%; margin: auto;">
+                        <img style="width: 100%; height: auto;" alt="QR Code" src="${info.qr_code || ""}" onerror="this.style.display='none'"/>
                     </div>
                     <p>
                         Mọi thắc mắc xin vui lòng liên hệ
@@ -124,5 +124,5 @@ module.exports = (items, info) => {
             </main>
         </body>
     </html>
-  `;
+`;
 };
