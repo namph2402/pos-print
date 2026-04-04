@@ -3,8 +3,13 @@ module.exports = (item, info = null) => {
     <html>
         <head>
         <style>
+          @page {
+            size: 50mm 30mm;
+            margin: 0;
+          }
           body {
-            width: 40mm;
+            width: 50mm;
+            height: 30mm;
             margin: 0;
             padding: 0;
             font-family: Arial;
@@ -13,13 +18,13 @@ module.exports = (item, info = null) => {
         </style>
         </head>
         <body>
-        <div style="padding: 10px; text-align: center; ">
+        <div style="padding-top: 10px; text-align: center; ">
             <div style="font-size: 17px; margin-bottom: 5px;">
                 <strong>${item.title}</strong>
             </div>
-            <div style="display: flex; justify-content: center;">
-                <span style="margin-right: 5px;">Số lượng:</span>
-                <strong>${item.quantity}</strong>
+            <div>
+                <strong style="display: block; margin-bottom: 5px;">Giá: ${item.price || 0}</strong>
+                <small>${item.note || ""}</small>
             </div>
         </div>
         </body>

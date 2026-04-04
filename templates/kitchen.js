@@ -3,8 +3,12 @@ module.exports = (items, info) => {
     <html>
       <head>
         <style>
+          @page {
+            size: 75mm auto;
+            margin: 0;
+          }
           body {
-            width: 70mm;
+            width: 75mm;
             margin: 0;
             padding: 0;
             font-family: Arial;
@@ -19,7 +23,7 @@ module.exports = (items, info) => {
       </head>
       <body>
         <main style="margin: auto;">
-          <div>
+          <div style="padding: 5px">
             <div style="text-align: center; font-size: 18px; margin-bottom: 10px;">
                 <strong>Phiếu đặt đồ</strong>
             </div>

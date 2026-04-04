@@ -5,6 +5,7 @@
   },
   "printers": {
     "customer": "XP-80C",
-    "kitchen": "XP-80C"
+    "kitchen": "XP-80C",
+    "bar": "XP-80C"
   }
 }

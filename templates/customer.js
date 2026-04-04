@@ -3,8 +3,12 @@ module.exports = (items, info) => {
     <html>
         <head>
             <style>
+                @page {
+                    size: 80mm auto;
+                    margin: 0;
+                }
                 body {
-                    width: 70mm;
+                    width: 80mm;
                     margin: 0;
                     padding: 0;
                     font-family: Arial;
@@ -22,7 +26,7 @@ module.exports = (items, info) => {
 
         <body>
             <main style="margin: auto;">
-                <div>
+                <div style="padding: 5px">
                     <div style="text-align: center; margin-bottom: 5px;">
                         <span style="display: block; margin-bottom: 5px;">Số đơn hàng</span>
                         <strong style=" font-size: 18px;">HIPS - ${items.order_number}</strong>
@@ -103,7 +107,7 @@ module.exports = (items, info) => {
                         </tr>
                     </tbody>
                 </table>
-                <div style="padding: 5px 0; text-align: center;">
+                <div style="padding: 5px; text-align: center;">
                     <div style="margin-bottom: 5px; font-size: 14px;">
                         <strong>${info.user || ""}</strong>
                     </div>

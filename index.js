@@ -8,7 +8,7 @@ const puppeteer = require("puppeteer");
 const { app: electronApp } = require("electron");
 const { exec } = require("child_process");
 const { print: winPrint, getPrinters } = require("pdf-to-printer");
-const { initializeApp } = require("firebase/app");
+const { initializeApp, getApps, deleteApp } = require("firebase/app");
 const { getDatabase, ref, onChildAdded, update } = require("firebase/database");
 
 const customerTemplate = require("./templates/customer");
@@ -19,9 +19,18 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// =========================
+// BIẾN TOÀN CỤC
+// =========================
+let db = null;
+let fbApp = null;
 let unsubscribe = null;
-const isElectron = !!process.versions.electron;
+let browserInstance = null;
+
 const imageCache = new Map();
+const CACHE_TTL = 5 * 60 * 1000;
+
+const isElectron = !!process.versions.electron;
 
 const PDF_DIR = isElectron
   ? path.join(electronApp.getPath("userData"), "pdf")
@@ -32,71 +41,122 @@ const CONFIG_FILE = isElectron
   : path.join(process.cwd(), "config.json");
 
 // =========================
-// Kiểm tra cấu hình.
+// CONFIG
 // =========================
 function getConfig() {
   try {
     if (!fs.existsSync(CONFIG_FILE)) {
       return { printers: {}, firebase: {} };
     }
-
-    const raw = fs.readFileSync(CONFIG_FILE, "utf-8");
-    const config = JSON.parse(raw);
-
-    if (!config.printers) config.printers = {};
-    if (!config.firebase) config.firebase = {};
-
-    return config;
+    const config = JSON.parse(fs.readFileSync(CONFIG_FILE, "utf-8"));
+    return {
+      printers: config.printers || {},
+      firebase: config.firebase || {},
+    };
   } catch (err) {
     console.error("Config lỗi:", err);
     return { printers: {}, firebase: {} };
   }
 }
 
+// =========================
+// FIREBASE
+// =========================
 function initFirebase() {
   try {
     const config = getConfig();
-    
-    if (!config.firebase?.api || !config.firebase?.database) {
-      return;
-    }
 
-    const firebaseConfig = {
-      apiKey: config.firebase.api,
-      databaseURL: config.firebase.database,
-    };
-
-    const { getApps, deleteApp } = require("firebase/app");
+    if (!config.firebase?.api || !config.firebase?.database) return;
 
     if (getApps().length) {
       getApps().forEach(app => deleteApp(app));
     }
 
-    fbApp = initializeApp(firebaseConfig);
+    fbApp = initializeApp({
+      apiKey: config.firebase.api,
+      databaseURL: config.firebase.database,
+    });
+
     db = getDatabase(fbApp);
     startFirebaseListener();
   } catch (err) {
-    console.error("Init Firebase lỗi:", err.message);
+    console.error("Firebase lỗi:", err.message);
   }
 }
 
+// =========================
+// UTIL
+// =========================
 function hasData(data) {
   if (!data) return false;
   if (Array.isArray(data)) return data.length > 0;
   if (typeof data === "object") return Object.keys(data).length > 0;
   return true;
-};
+}
+
+function safeDelete(file) {
+  if (fs.existsSync(file)) fs.unlinkSync(file);
+}
 
 // =========================
-// Hành động.
+// PUPPETEER (SINGLETON)
 // =========================
+async function getBrowser() {
+  if (!browserInstance) {
+    browserInstance = await puppeteer.launch({
+      executablePath: "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+      headless: "new",
+      args: ["--no-sandbox"],
+    });
+  }
+  return browserInstance;
+}
 
-function printFile(file, printerName) {
+// =========================
+// PDF
+// =========================
+async function createPDF(file, data, info, templateFn, options = {}) {
+  const { width = "80mm", height = null } = options;
+
+  const browser = await getBrowser();
+  const page = await browser.newPage();
+
+  try {
+    const html = templateFn(data, info);
+    await page.setContent(html, { waitUntil: "networkidle0" });
+
+    const pdfOptions = {
+      path: file,
+      width,
+      margin: 0,
+      printBackground: true,
+      preferCSSPageSize: true,
+    };
+
+    if (height) {
+      pdfOptions.height = height;
+      pdfOptions.pageRanges = "1";
+    }
+
+    await page.pdf(pdfOptions);
+  } finally {
+    await page.close();
+  }
+}
+
+// =========================
+// PRINT
+// =========================
+function printFile(file, printerName, options = {}) {
   return new Promise((resolve, reject) => {
     const platform = os.platform();
 
     if (platform === "win32") {
-      winPrint(file, { printer: printerName })
+      winPrint(file, {
+        printer: printerName,
+        paperSize: options.paperSize,
+        orientation: options.orientation,
+      })
         .then(resolve)
         .catch(reject);
     } else if (platform === "linux") {
@@ -104,120 +164,38 @@ function printFile(file, printerName) {
         ? `lp -d "${printerName}" "${file}"`
         : `lp "${file}"`;
 
-      exec(cmd, (err, stdout, stderr) => {
+      exec(cmd, (err, stdout) => {
         if (err) return reject(err);
         resolve(stdout);
       });
-    }
-
-    else {
+    } else {
       reject("OS không hỗ trợ");
     }
   });
 }
 
-async function createPDF(file, data, info, templateFn) {
-  const browser = await puppeteer.launch({
-    executablePath: "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-  });
-  
-  const page = await browser.newPage();
-
-  const html = templateFn(data, info);
-
-  await page.setContent(html, { waitUntil: "domcontentloaded" });
-
-  await page.pdf({
-    path: file,
-    width: "80mm",
-    printBackground: true,
-  });
-
-  await browser.close();
-}
-
-async function handlePrint(order) {
-  const config = getConfig();
-  const jobs = [];
-
-  if (!fs.existsSync(PDF_DIR)) {
-    fs.mkdirSync(PDF_DIR, { recursive: true });
-  }
-
-  if (config.printers?.customer && hasData(order.customer)) {
-    const file = path.join(PDF_DIR, `customer_${Date.now()}.pdf`);
-    
-    const imgBase64 = await loadImageToBase64(order.info?.qr_code);
-    if (order.info) {
-      order.info.qr_code = imgBase64 || "";
-    }
-
-    await createPDF(file, order.customer, order.info, customerTemplate);
-    jobs.push(
-      printFile(file, config.printers.customer)
-        .then(() => fs.unlinkSync(file))
-        .catch(console.error)
-    );
-  }
-
-  if (config.printers?.kitchen && hasData(order.kitchen)) {
-    const file = path.join(PDF_DIR, `kitchen_${Date.now()}.pdf`);
-    await createPDF(file, order.kitchen, order.info, kitchenTemplate);
-    jobs.push(
-      printFile(file, config.printers.kitchen)
-        .then(() => fs.unlinkSync(file))
-        .catch(console.error)
-    );
-  }
-
-  if (config.printers?.bar && hasData(order.bar)) {
-    await Promise.all(
-      (order.bar || []).map(async (item, index) => {
-        let file = path.join(PDF_DIR, `bar_${Date.now()}_${index}.pdf`);
-        await createPDF(file, item, order.info, barTemplate);
-        jobs.push(
-          printFile(file, config.printers.bar)
-            .then(() => fs.unlinkSync(file))
-            .catch(console.error)
-        );
-      })
-    );
-  }
-
-  Promise.all(jobs)
-    .then(() => console.log("In xong tất cả"))
-    .catch(err => console.error("Lỗi in:", err));
-}
-
 // =========================
-// Lấy danh sách máy in.
+// RETRY
 // =========================
-app.get("/printers", async (req, res) => {
+async function retry(fn, retries = 2) {
   try {
-    const printers = await getPrinters();
-    res.json(printers);
+    return await fn();
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    if (retries <= 0) throw err;
+    return retry(fn, retries - 1);
   }
-});
+}
+
 
 // =========================
-// Lấy config.
-// =========================
-app.get("/config", (req, res) => {
-  res.json(getConfig());
-});
-
-// =========================
-// Ảnh base64.
+// IMAGE CACHE
 // =========================
 async function loadImageToBase64(url) {
-  if (!url) {
-    return "";
-  }
+  if (!url) return "";
 
-  if (imageCache.has(url)) {
-    return imageCache.get(url);
+  const cached = imageCache.get(url);
+  if (cached && Date.now() - cached.time < CACHE_TTL) {
+    return cached.data;
   }
 
   try {
@@ -230,21 +208,107 @@ async function loadImageToBase64(url) {
     const base64 = Buffer.from(res.data).toString("base64");
     const result = `data:${type};base64,${base64}`;
 
-    imageCache.set(url, result);
-
+    imageCache.set(url, { data: result, time: Date.now() });
     return result;
-  } catch (err) {
-    console.error("Load image failed:", err.message);
+  } catch {
     return "";
   }
 }
 
 // =========================
-// Set cấu hình máy in
+// HANDLE PRINT
 // =========================
+async function handlePrint(order) {
+  const config = getConfig();
+  const jobs = [];
+
+  if (!fs.existsSync(PDF_DIR)) {
+    fs.mkdirSync(PDF_DIR, { recursive: true });
+  }
+
+  // CUSTOMER
+  if (config.printers.customer && hasData(order.customer)) {
+    const file = path.join(PDF_DIR, `customer_${Date.now()}.pdf`);
+
+    const img = await loadImageToBase64(order.info?.qr_code);
+    if (order.info) order.info.qr_code = img;
+
+    await createPDF(file, order.customer, order.info, customerTemplate);
+
+    jobs.push(
+      retry(() => printFile(file, config.printers.customer))
+        .then(() => safeDelete(file))
+        .catch(err => {
+          safeDelete(file);
+        })
+    );
+  }
+
+  // KITCHEN
+  if (config.printers.kitchen && hasData(order.kitchen)) {
+    const file = path.join(PDF_DIR, `kitchen_${Date.now()}.pdf`);
+
+    await createPDF(file, order.kitchen, order.info, kitchenTemplate);
+
+    jobs.push(
+      retry(() => printFile(file, config.printers.kitchen))
+        .then(() => safeDelete(file))
+        .catch(err => {
+          safeDelete(file);
+        })
+    );
+  }
+
+  // BAR (TEM)
+  if (config.printers.bar && hasData(order.bar)) {
+    for (let i = 0; i < order.bar.length; i++) {
+      const item = order.bar[i];
+      const qty = item.quantity || 1;
+
+      for (let j = 0; j < qty; j++) {
+        const file = path.join(
+          PDF_DIR,
+          `bar_${Date.now()}_${i}_${j}.pdf`
+        );
+
+        await createPDF(file, item, order.info, barTemplate, {
+          width: "50mm",
+          height: "30mm",
+        });
+
+        jobs.push(
+          retry(() =>
+            printFile(file, config.printers.bar, {
+              paperSize: "Tem",
+              orientation: "landscape",
+            })
+          ).then(() => safeDelete(file))
+          .catch(err => {
+          safeDelete(file);
+        })
+        );
+      }
+    }
+  }
+}
+
+// =========================
+// API
+// =========================
+app.get("/printers", async (req, res) => {
+  try {
+    res.json(await getPrinters());
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/config", (req, res) => {
+  res.json(getConfig());
+});
+
 app.post("/set-config", (req, res) => {
   const data = req.body;
-
   if (!Array.isArray(data)) {
     return res.status(400).json({ error: "Phải là array" });
   }
@@ -252,37 +316,26 @@ app.post("/set-config", (req, res) => {
   const config = getConfig();
 
   data.forEach(item => {
-    const { type } = item;
-
-    if (type == "print") {
-      const { printerType, printerName } = item;
-      if (printerType && printerName) {
-        config.printers[printerType] = printerName;
-      }
+    if (item.type === "print") {
+      config.printers[item.printerType] = item.printerName;
     }
-
-    if (type == "firebase") {
-      const { api, database } = item;
-
-      if (api && database) {
-        config.firebase.api = api;
-        config.firebase.database = database;
-      }
+    if (item.type === "firebase") {
+      config.firebase = {
+        api: item.api,
+        database: item.database,
+      };
     }
   });
 
   fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2));
   initFirebase();
+
   res.json({ success: true });
 });
 
-// =========================
-// API IN HÓA ĐƠN
-// =========================
 app.post("/print", async (req, res) => {
   try {
-    const order = req.body;
-    await handlePrint(order);
+    await handlePrint(req.body);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -297,18 +350,21 @@ function startFirebaseListener() {
 
   const jobsRef = ref(db, "print_jobs");
 
-  if (unsubscribe) {
-    unsubscribe();
-  }
+  if (unsubscribe) unsubscribe();
 
   unsubscribe = onChildAdded(jobsRef, async (snapshot) => {
     const job = snapshot.val();
     const key = snapshot.key;
 
-    if (!job || job.status !== "pending") return;
+    if (!job || job.status !== "pending" || job.processing) return;
 
     try {
+      await update(ref(db, `print_jobs/${key}`), {
+        processing: true,
+      });
+
       await handlePrint(job);
+
       await update(ref(db, `print_jobs/${key}`), {
         status: "done",
         doneAt: Date.now(),
@@ -323,10 +379,10 @@ function startFirebaseListener() {
 }
 
 // =========================
-// Start server
+// START
 // =========================
 app.listen(3242, () => {
-  console.log("Print server chạy tại http://localhost:3242");
+  console.log("Server chạy tại http://localhost:3242");
 });
 
 initFirebase();
