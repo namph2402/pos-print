@@ -4,11 +4,11 @@ module.exports = (items, info) => {
       <head>
         <style>
           @page {
-            size: 75mm auto;
+            size: 80mm auto;
             margin: 0;
           }
           body {
-            width: 75mm;
+            width: 80mm;
             margin: 0;
             padding: 0;
             font-family: Arial;
@@ -24,8 +24,9 @@ module.exports = (items, info) => {
       <body>
         <main style="margin: auto;">
           <div style="padding: 5px">
-            <div style="text-align: center; font-size: 18px; margin-bottom: 10px;">
-                <strong>Phiếu đặt đồ</strong>
+            <div style="text-align: center; margin-bottom: 5px;">
+                <span style="display: block; margin-bottom: 5px;">Phiếu đặt đồ</span>
+                <strong style=" font-size: 18px;">HIPS -${info.order_number || ""}</strong>
             </div>
             <div style="margin-bottom: 5px">
                 <strong>Thời gian: </strong>

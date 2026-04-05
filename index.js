@@ -233,6 +233,7 @@ async function handlePrint(order) {
     const img = await loadImageToBase64(order.info?.qr_code);
     if (order.info) order.info.qr_code = img;
 
+    order.info.order_number = order.customer.order_number;
     await createPDF(file, order.customer, order.info, customerTemplate);
 
     jobs.push(
@@ -285,8 +286,9 @@ async function handlePrint(order) {
           ).then(() => safeDelete(file))
           .catch(err => {
           safeDelete(file);
-        })
-        );
+        }));
+
+        
       }
     }
   }
