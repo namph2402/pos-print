@@ -8,7 +8,7 @@ module.exports = (items, info) => {
             margin: 0;
           }
           body {
-            width: 80mm;
+            width: 70mm;
             margin: 0;
             padding: 0;
             font-family: Arial;

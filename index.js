@@ -238,7 +238,17 @@ async function handlePrint(order) {
 
     jobs.push(
       retry(() => printFile(file, config.printers.customer))
-        .then(() => safeDelete(file))
+        .then(async () => {
+          try {
+            await new Promise(r => setTimeout(r, 300));
+            if (order.info?.payment === "Tiền mặt") {
+              await openDrawer(config.printers.customer);
+            }
+          } catch (err) {
+            console.error("Lỗi mở két:", err.message);
+          }
+          safeDelete(file)
+        })
         .catch(err => {
           safeDelete(file);
         })
@@ -287,11 +297,35 @@ async function handlePrint(order) {
           .catch(err => {
           safeDelete(file);
         }));
-
-        
       }
     }
   }
+
+  await Promise.all(jobs);
+}
+
+// =========================
+// OPEN DRAWER
+// =========================
+function openDrawer(printerName) {
+  return new Promise((resolve, reject) => {
+    try {
+      const file = path.join(PDF_DIR, "drawer.bin");
+      const buffer = Buffer.from([0x1B, 0x70, 0x00, 0x19, 0xFA]);
+      fs.writeFileSync(file, buffer);
+      const hostname = require("os").hostname();
+      const cmd = `copy /b "${file}" "\\\\${hostname}\\${printerName}"`;
+      exec(cmd, (err) => {
+        if (err) {
+          console.error("Lỗi mở két:", err.message);
+          return reject(err);
+        }
+        resolve(true);
+      });
+    } catch (err) {
+      reject(err);
+    }
+  });
 }
 
 // =========================
