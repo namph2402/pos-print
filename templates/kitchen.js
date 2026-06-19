@@ -8,8 +8,8 @@ module.exports = (items, info) => {
             margin: 0;
           }
           body {
-            width: 70mm;
-            margin: 0;
+            width: 75mm;
+            margin: 0 auto;
             padding: 0;
             font-family: Arial;
             font-size: 12px;
@@ -22,11 +22,11 @@ module.exports = (items, info) => {
         </style>
       </head>
       <body>
-        <main style="margin: auto;">
+        <main style="margin: auto">
           <div style="padding: 5px">
-            <div style="text-align: center; margin-bottom: 5px;">
-                <span style="display: block; margin-bottom: 5px;">Phiếu đặt đồ</span>
-                <strong style=" font-size: 18px;">HIPS -${info.order_number || ""}</strong>
+            <div style="text-align: center; margin-bottom: 5px">
+                <span style="display: block; margin-bottom: 5px">Phiếu đặt đồ</span>
+                <strong style=" font-size: 18px">${info.order_number || ""}</strong>
             </div>
             <div style="margin-bottom: 5px">
                 <strong>Thời gian: </strong>
@@ -40,20 +40,21 @@ module.exports = (items, info) => {
           <table style="width: 100%; padding: 0; font-size: 13px">
             <thead>
               <tr>
-                <th style="width: 75%; text-align: start;">Tên món</th>
-                <th style="width: 25%;">SL</th>
+                <th style="width: 75%; text-align: start">Tên món</th>
+                <th style="width: 25%">SL</th>
               </tr>
             </thead>
             <tbody>
               ${(items || []).map(item => `
                 <tr style="fonrt-size: 14px">
                   <td>
-                    <p style="margin-top: 0; margin-bottom: 5px;">${item.title}</p>
-                    <small style="display: block">${item.variations || ""}</small>
+                    <p style="margin-top: 0; margin-bottom: 5px">${item.title}</p>
+                    <small style="display: block; margin-bottom: 5px">${item.variations || ""}</small>
+                    <small style="display: block; margin-bottom: 5px">${item.list_topping || ""}</small>
                     <small>${item.note || ""}</small>
                   </td>
                   <td>
-                      <p style="margin: 0; text-align: center;">${item.quantity}</p>
+                      <p style="margin: 0; text-align: center">${item.quantity}</p>
                   </td>
                 </tr>
               `).join("")}

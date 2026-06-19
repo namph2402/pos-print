@@ -3,13 +3,14 @@ const cors = require("cors");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+const dns = require("dns").promises;
 const axios = require("axios");
 const puppeteer = require("puppeteer");
 const { app: electronApp } = require("electron");
 const { exec } = require("child_process");
 const { print: winPrint, getPrinters } = require("pdf-to-printer");
 const { initializeApp, getApps, deleteApp } = require("firebase/app");
-const { getDatabase, ref, onChildAdded, update } = require("firebase/database");
+const { getDatabase, ref, onChildAdded, update, runTransaction } = require("firebase/database");
 
 const customerTemplate = require("./templates/customer");
 const kitchenTemplate = require("./templates/kitchen");
@@ -26,9 +27,14 @@ let db = null;
 let fbApp = null;
 let unsubscribe = null;
 let browserInstance = null;
+let serverInstance = null;
+let firebaseRetryTimer = null;
 
 const imageCache = new Map();
 const CACHE_TTL = 5 * 60 * 1000;
+const FIREBASE_RETRY_MS = 10 * 1000;
+const FIREBASE_STALE_PROCESSING_MS = 5 * 60 * 1000;
+const INSTANCE_ID = `${os.hostname()}-${process.pid}-${Date.now()}`;
 
 const isElectron = !!process.versions.electron;
 
@@ -40,11 +46,29 @@ const CONFIG_FILE = isElectron
   ? path.join(electronApp.getPath("userData"), "config.json")
   : path.join(process.cwd(), "config.json");
 
+const DEFAULT_CONFIG_FILE = path.join(__dirname, "config.json");
+
+function ensureConfigFile() {
+  if (fs.existsSync(CONFIG_FILE)) return;
+
+  try {
+    if (fs.existsSync(DEFAULT_CONFIG_FILE)) {
+      fs.copyFileSync(DEFAULT_CONFIG_FILE, CONFIG_FILE);
+    } else {
+      fs.writeFileSync(CONFIG_FILE, JSON.stringify({ printers: {}, firebase: {} }, null, 2));
+    }
+  } catch (err) {
+    console.error("Không thể tạo config:", err.message);
+  }
+}
+
 // =========================
 // CONFIG
 // =========================
 function getConfig() {
   try {
+    ensureConfigFile();
+
     if (!fs.existsSync(CONFIG_FILE)) {
       return { printers: {}, firebase: {} };
     }
@@ -62,14 +86,36 @@ function getConfig() {
 // =========================
 // FIREBASE
 // =========================
-function initFirebase() {
+async function canReachFirebase(databaseUrl) {
   try {
+    const host = new URL(databaseUrl).hostname;
+    await dns.lookup(host);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function initFirebase() {
+  try {
+    clearTimeout(firebaseRetryTimer);
+    firebaseRetryTimer = null;
+
     const config = getConfig();
 
-    if (!config.firebase?.api || !config.firebase?.database) return;
+    if (!config.firebase?.api || !config.firebase?.database) {
+      console.log("Chưa cấu hình Firebase");
+      return;
+    }
+
+    if (!(await canReachFirebase(config.firebase.database))) {
+      console.log("Chưa có mạng hoặc chưa tới được Firebase, sẽ thử lại...");
+      scheduleFirebaseRetry();
+      return;
+    }
 
     if (getApps().length) {
-      getApps().forEach(app => deleteApp(app));
+      await Promise.all(getApps().map(app => deleteApp(app).catch(() => {})));
     }
 
     fbApp = initializeApp({
@@ -81,7 +127,17 @@ function initFirebase() {
     startFirebaseListener();
   } catch (err) {
     console.error("Firebase lỗi:", err.message);
+    scheduleFirebaseRetry();
   }
+}
+
+function scheduleFirebaseRetry() {
+  if (firebaseRetryTimer) return;
+
+  firebaseRetryTimer = setTimeout(() => {
+    firebaseRetryTimer = null;
+    initFirebase();
+  }, FIREBASE_RETRY_MS);
 }
 
 // =========================
@@ -234,7 +290,12 @@ async function handlePrint(order) {
     if (order.info) order.info.qr_code = img;
 
     order.info.order_number = order.customer.order_number;
-    await createPDF(file, order.customer, order.info, customerTemplate);
+
+    try {
+      await createPDF(file, order.customer, order.info, customerTemplate);
+    } catch (err) {
+      console.error("Customer PDF error:", err);
+    }
 
     jobs.push(
       retry(() => printFile(file, config.printers.customer))
@@ -259,7 +320,11 @@ async function handlePrint(order) {
   if (config.printers.kitchen && hasData(order.kitchen)) {
     const file = path.join(PDF_DIR, `kitchen_${Date.now()}.pdf`);
 
-    await createPDF(file, order.kitchen, order.info, kitchenTemplate);
+    try {
+      await createPDF(file, order.kitchen, order.info, kitchenTemplate);
+    } catch (err) {
+      console.error("Kitchen PDF error:", err);
+    }
 
     jobs.push(
       retry(() => printFile(file, config.printers.kitchen))
@@ -282,10 +347,14 @@ async function handlePrint(order) {
           `bar_${Date.now()}_${i}_${j}.pdf`
         );
 
-        await createPDF(file, item, order.info, barTemplate, {
-          width: "50mm",
-          height: "30mm",
-        });
+        try {
+          await createPDF(file, item, order.info, barTemplate, {
+            width: "50mm",
+            height: "30mm",
+          });
+        } catch (err) {
+          console.error("Bar PDF error:", err);
+        }
 
         jobs.push(
           retry(() =>
@@ -392,33 +461,65 @@ function startFirebaseListener() {
     const job = snapshot.val();
     const key = snapshot.key;
 
-    if (!job || job.status !== "pending" || job.processing) return;
+    if (!job || job.status !== "pending") return;
 
     try {
-      await update(ref(db, `print_jobs/${key}`), {
-        processing: true,
+      const jobRef = ref(db, `print_jobs/${key}`);
+      const claim = await runTransaction(jobRef, (current) => {
+        if (!current || current.status !== "pending") return;
+
+        const isProcessing = current.processing === true;
+        const processingAt = current.processingAt || 0;
+        const isStale = isProcessing && Date.now() - processingAt > FIREBASE_STALE_PROCESSING_MS;
+
+        if (isProcessing && !isStale) return;
+
+        return {
+          ...current,
+          processing: true,
+          processingAt: Date.now(),
+          processingBy: INSTANCE_ID,
+        };
       });
 
-      await handlePrint(job);
+      if (!claim.committed || claim.snapshot.val()?.processingBy !== INSTANCE_ID) {
+        return;
+      }
 
-      await update(ref(db, `print_jobs/${key}`), {
+      await handlePrint(claim.snapshot.val());
+
+      await update(jobRef, {
         status: "done",
+        processing: false,
         doneAt: Date.now(),
       });
     } catch (err) {
       await update(ref(db, `print_jobs/${key}`), {
         status: "error",
+        processing: false,
         error: err.message,
       });
     }
+  }, (err) => {
+    console.error("Firebase listener lỗi:", err.message);
+    scheduleFirebaseRetry();
   });
 }
 
 // =========================
 // START
 // =========================
-app.listen(3242, () => {
+serverInstance = app.listen(3242, () => {
   console.log("Server chạy tại http://localhost:3242");
+});
+
+serverInstance.on("error", (err) => {
+  if (err.code === "EADDRINUSE") {
+    console.error("Port 3242 đang được dùng. Có thể PrintServer đã chạy sẵn.");
+    process.exit(0);
+  }
+
+  console.error("Server lỗi:", err.message);
 });
 
 initFirebase();

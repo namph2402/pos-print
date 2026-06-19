@@ -8,8 +8,8 @@ module.exports = (items, info) => {
                     margin: 0;
                 }
                 body {
-                    width: 70mm;
-                    margin: 0;
+                    width: 75mm;
+                    margin: 0 auto;
                     padding: 0;
                     font-family: Arial;
                     font-size: 12px;
@@ -25,19 +25,19 @@ module.exports = (items, info) => {
         </head>
 
         <body>
-            <main style="margin: auto;">
+            <main style="margin: auto">
                 <div style="padding: 5px">
-                    <div style="text-align: center; margin-bottom: 5px;">
-                        <span style="display: block; margin-bottom: 5px;">Số đơn hàng</span>
-                        <strong style=" font-size: 18px;">HIPS - ${items.order_number}</strong>
+                    <div style="text-align: center; margin-bottom: 5px">
+                        <span style="display: block; margin-bottom: 5px">Số đơn hàng</span>
+                        <strong style=" font-size: 18px">${items.order_number}</strong>
                     </div>
                     <div style="text-align: center; padding-bottom: 5px; margin-bottom: 10px; border-bottom: 1px dashed">
-                        <span style="display: block; margin-bottom: 5px;">Chào mừng quý khách đến với</span>
-                        <strong style=" font-size: 14px;">${info.name_store}</strong>
+                        <span style="display: block; margin-bottom: 5px">Chào mừng quý khách đến với</span>
+                        <strong style=" font-size: 14px">${info.name}</strong>
                     </div>
                     <div style="margin-bottom: 5px">
                         <strong>Khách hàng: </strong>
-                        <span>${info.CustomerInfo?.name ? info.CustomerInfo.name : 'Khách hàng'}</span>
+                        <span>${info.customer?.name ? info.customer.name : 'Khách hàng'}</span>
                     </div>
                     <div style="margin-bottom: 5px">
                         <strong>Thời gian: </strong>
@@ -55,7 +55,7 @@ module.exports = (items, info) => {
                 <table style="width: 100%; padding: 0">
                     <thead>
                         <tr style="font-size: 12px">
-                            <th style="width: 50%; text-align: start;">Tên món</th>
+                            <th style="width: 50%; text-align: start">Tên món</th>
                             <th>SL</th>
                             <th>Giá</th>
                             <th>Tổng</th>
@@ -65,17 +65,18 @@ module.exports = (items, info) => {
                     ${(items.order_items || []).map(item => `
                         <tr>
                             <td>
-                                <p style="margin-top: 0; margin-bottom: 5px;">${item.title}</p>
+                                <p style="margin-top: 0; margin-bottom: 5px">${item.title}</p>
+                                 <small style="display: block; margin-bottom: 5px">${item.list_topping || ""}</small>
                                 <small>${item.note || ""}</small>
                             </td>
                             <td>
-                                <p style="margin: 0; text-align: center;">${item.quantity}</p>
+                                <p style="margin: 0; text-align: center">${item.quantity}</p>
                             </td>
                             <td>
-                                <p style="margin: 0; text-align: center;">${item.price_number.toLocaleString('VND')}</p>
+                                <p style="margin: 0; text-align: center">${item.price_number.toLocaleString('VND')}</p>
                             </td>
                             <td>
-                                <p style="margin: 0; text-align: center;">${(item.quantity * item.price_number).toLocaleString('VND')}</p>
+                                <p style="margin: 0; text-align: center">${(item.quantity * item.price_number).toLocaleString('VND')}</p>
                             </td>
                         </tr>
                     `).join("")}
@@ -84,44 +85,43 @@ module.exports = (items, info) => {
                             <td></td>
                             <td></td>
                             <td>
-                                <p style="margin: 0; text-align: center;">${items.amount.toLocaleString('VND')}</p>
+                                <p style="margin: 0; text-align: center">${items.amount.toLocaleString('VND')}</p>
                             </td>
                         </tr>
                         <tr>
                             <td colspan="3"><strong>Giảm giá</strong></td>
                             <td>
-                                <p style="margin: 0; text-align: center;">${(items.discount).toLocaleString('VND')}</p>
+                                <p style="margin: 0; text-align: center">${(items.discount).toLocaleString('VND')}</p>
                             </td>
                         </tr>
                         <tr>
                             <td colspan="3"><strong>Thuế VAT</strong></td>
                             <td>
-                                <p style="margin: 0; text-align: center;">${items.vat.toLocaleString('VND')}</p>
+                                <p style="margin: 0; text-align: center">${items.vat.toLocaleString('VND')}</p>
                             </td>
                         </tr>
                         <tr>
                             <td colspan="3"><strong>Tổng thanh toán</strong></td>
                             <td>
-                                <p style="margin: 0; text-align: center;">${items.total_amount.toLocaleString('VND')}</p>
+                                <p style="margin: 0; text-align: center">${items.total_amount.toLocaleString('VND')}</p>
                             </td>
                         </tr>
                     </tbody>
                 </table>
-                <div style="padding: 5px; text-align: center;">
-                    <div style="margin-bottom: 5px; font-size: 14px;">
-                        <strong>${info.user || ""}</strong>
+                <div style="padding: 5px; text-align: center">
+                    <div style="margin-bottom: 5px; font-size: 14px">
+                        <strong>${info.bank.name || ""}</strong>
                     </div>
-                    <div style="margin-bottom: 5px;">
-                        <strong>${info.bank || ""}</strong>
-                        <span style="margin-left: 3px; font-size: 15px;">${info.number || ""}</span>
+                    <div style="margin-bottom: 5px">
+                        <strong>${info.bank.type || ""}</strong>
+                        <span style="margin-left: 3px; font-size: 15px">${info.bank.number || ""}</span>
                     </div>
-                    <div style="width: 70%; margin: auto;">
-                        <img style="width: 100%; height: auto;" alt="QR Code" src="${info.qr_code || ""}" onerror="this.style.display='none'"/>
+                    <div style="width: 70%; margin: auto">
+                        <img style="width: 100%; height: auto" alt="QR Code" src="${info.bank.qr_code || ""}" onerror="this.style.display='none'"/>
                     </div>
                     <p>
                         Mọi thắc mắc xin vui lòng liên hệ
-                        <span style="display: block; margin-top: 3px;">Cửa hàng: ${info.hot_line}</span>
-                        <span style="display: block; margin-top: 3px;">Hotline Pizzahips: ${info.hot_line_pizzahips}</span>
+                        <span style="display: block; margin-top: 3px">Cửa hàng: ${info.phone}</span>
                     </p>
                     <strong>Cảm ơn Quý Khách</strong>
                 </div>
