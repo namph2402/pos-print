@@ -15,19 +15,41 @@ module.exports = (item, info = null) => {
             font-family: Arial;
             font-size: 13px;
             transform: rotate(180deg);
+            transform-origin: center center;
+          }
+          * {
+            box-sizing: border-box;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+          }
+          .label {
+            width: 43mm;
+            height: 25mm;
+            margin: 3mm 4mm 2mm 1mm;
+            padding: 0;
+          }
+          .row {
+            display: flex;
+            justify-content: space-between;
+            gap: 2mm;
+            margin-bottom: 4px;
+          }
+          .right {
+            flex-shrink: 0;
+            text-align: right;
           }
       </style>
       </head>
       <body>
-        <main style="margin: auto; width: 48mm">
-          <div style="padding-right: 5px;">
-              <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 13px;">
+        <main class="label">
+          <div>
+              <div class="row" style="font-size: 13px;">
                   <strong>#${info.order_number || ""}</strong>
-                  <span>${info.table}</span>
+                  <span class="right">${info.table}</span>
               </div>
-              <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px;">
+              <div class="row" style="font-size: 12px;">
                   <strong>${item.title}</strong>
-                  <span>${(item.price_number || 0).toLocaleString('VND')}</span>
+                  <span class="right">${(item.price_number || 0).toLocaleString('VND')}</span>
               </div>
               <div>
                   <small style="display: block; text-align:start; margin-bottom: 5px">${item.list_topping || ""}</small>

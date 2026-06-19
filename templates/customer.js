@@ -8,18 +8,26 @@ module.exports = (items, info) => {
                     margin: 0;
                 }
                 body {
-                    width: 75mm;
-                    margin: 0 auto;
+                    width: 70mm;
+                    margin: 0;
                     padding: 0;
                     font-family: Arial;
                     font-size: 12px;
                 }
+                * {
+                    box-sizing: border-box;
+                }
+                table {
+                    table-layout: fixed;
+                }
                 table,
                 th,
                 td {
-                    padding: 5px;
+                    padding: 3px 2px;
                     border-bottom: 1px solid #ececec;
                     border-collapse: collapse;
+                    word-break: break-word;
+                    overflow-wrap: anywhere;
                 }
             </style>
         </head>
@@ -55,10 +63,10 @@ module.exports = (items, info) => {
                 <table style="width: 100%; padding: 0">
                     <thead>
                         <tr style="font-size: 12px">
-                            <th style="width: 50%; text-align: start">Tên món</th>
-                            <th>SL</th>
-                            <th>Giá</th>
-                            <th>Tổng</th>
+                            <th style="width: 44%; text-align: start">Tên món</th>
+                            <th style="width: 10%">SL</th>
+                            <th style="width: 22%">Giá</th>
+                            <th style="width: 24%">Tổng</th>
                         </tr>
                     </thead>
                     <tbody style="font-size: 12px">
@@ -73,10 +81,10 @@ module.exports = (items, info) => {
                                 <p style="margin: 0; text-align: center">${item.quantity}</p>
                             </td>
                             <td>
-                                <p style="margin: 0; text-align: center">${item.price_number.toLocaleString('VND')}</p>
+                                <p style="margin: 0; text-align: right; font-size: 11px">${item.price_number.toLocaleString('VND')}</p>
                             </td>
                             <td>
-                                <p style="margin: 0; text-align: center">${(item.quantity * item.price_number).toLocaleString('VND')}</p>
+                                <p style="margin: 0; text-align: right; font-size: 11px">${(item.quantity * item.price_number).toLocaleString('VND')}</p>
                             </td>
                         </tr>
                     `).join("")}
@@ -85,25 +93,25 @@ module.exports = (items, info) => {
                             <td></td>
                             <td></td>
                             <td>
-                                <p style="margin: 0; text-align: center">${items.amount.toLocaleString('VND')}</p>
+                                <p style="margin: 0; text-align: right; font-size: 11px">${items.amount.toLocaleString('VND')}</p>
                             </td>
                         </tr>
                         <tr>
                             <td colspan="3"><strong>Giảm giá</strong></td>
                             <td>
-                                <p style="margin: 0; text-align: center">${(items.discount).toLocaleString('VND')}</p>
+                                <p style="margin: 0; text-align: right; font-size: 11px">${(items.discount).toLocaleString('VND')}</p>
                             </td>
                         </tr>
                         <tr>
                             <td colspan="3"><strong>Thuế VAT</strong></td>
                             <td>
-                                <p style="margin: 0; text-align: center">${items.vat.toLocaleString('VND')}</p>
+                                <p style="margin: 0; text-align: right; font-size: 11px">${items.vat.toLocaleString('VND')}</p>
                             </td>
                         </tr>
                         <tr>
                             <td colspan="3"><strong>Tổng thanh toán</strong></td>
                             <td>
-                                <p style="margin: 0; text-align: center">${items.total_amount.toLocaleString('VND')}</p>
+                                <p style="margin: 0; text-align: right; font-size: 11px">${items.total_amount.toLocaleString('VND')}</p>
                             </td>
                         </tr>
                     </tbody>

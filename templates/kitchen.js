@@ -8,16 +8,24 @@ module.exports = (items, info) => {
             margin: 0;
           }
           body {
-            width: 75mm;
-            margin: 0 auto;
+            width: 70mm;
+            margin: 0;
             padding: 0;
             font-family: Arial;
             font-size: 12px;
           }
+          * {
+            box-sizing: border-box;
+          }
+          table {
+            table-layout: fixed;
+          }
           table, th, td {
-            padding: 5px;
+            padding: 3px 2px;
             border-bottom: 1px solid #ececec;
             border-collapse: collapse;
+            word-break: break-word;
+            overflow-wrap: anywhere;
           }
         </style>
       </head>
