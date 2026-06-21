@@ -49,7 +49,7 @@ module.exports = (items, info) => {
                     </div>
                     <div style="margin-bottom: 5px">
                         <strong>Thời gian: </strong>
-                        <span>${new Date().toLocaleString("vi-VN")}</span>
+                        <span>${new Date().toLocaleTimeString("vi-VN")} ngày ${new Date().toLocaleDateString("vi-VN")}</span>
                     </div>
                     <div style="margin-bottom: 5px">
                         <strong>Hình thức: </strong>
@@ -89,27 +89,34 @@ module.exports = (items, info) => {
                         </tr>
                     `).join("")}
                         <tr>
-                            <td><strong>Tổng tiền hàng</strong></td>
+                            <td>
+                                <p style="margin: 0; font-size: 12px; font-weight: bold">Tổng tiền hàng</p>
+                            </td>
                             <td></td>
                             <td></td>
                             <td>
-                                <p style="margin: 0; text-align: right; font-size: 11px; font-weight: bold">${items.amount.toLocaleString('VND')}đ</p>
+                                <p style="margin: 0; text-align: right; font-size: 12px; font-weight: bold">${items.amount.toLocaleString('VND')}đ</p>
                             </td>
                         </tr>
                         <tr>
-                            <td colspan="3"><strong>Giảm giá</strong></td>
+                            <td colspan="3">
+                                <p style="margin: 0; font-size: 12px; font-weight: bold">Giảm giá</p>
+                            </td>
                             <td>
-                                <p style="margin: 0; text-align: right; font-size: 11px; font-weight: bold"">${(items.discount).toLocaleString('VND')}đ</p>
+                                <p style="margin: 0; text-align: right; font-size: 12px; font-weight: bold"">${(items.discount).toLocaleString('VND')}đ</p>
                             </td>
                         </tr>
                         <tr>
-                            <td colspan="3"><strong>Thuế VAT</strong></td>
+                            <td colspan="3">
+                                <p style="margin: 0; font-size: 12px; font-weight: bold">Thuế VAT</p>
+                            </td>
                             <td>
-                                <p style="margin: 0; text-align: right; font-size: 11px; font-weight: bold"">${items.vat.toLocaleString('VND')}đ</p>
+                                <p style="margin: 0; text-align: right; font-size: 12px; font-weight: bold"">${items.vat.toLocaleString('VND')}đ</p>
                             </td>
                         </tr>
                         <tr>
-                            <td colspan="3"><strong>Tổng thanh toán</strong></td>
+                            <td colspan="3">
+                                <p style="margin: 0; font-size: 13px; font-weight: bold">Tổng thanh toán</p></td>
                             <td>
                                 <p style="margin: 0; text-align: right; font-size: 13px; font-weight: bold"">${items.total_amount.toLocaleString('VND')}đ</p>
                             </td>
