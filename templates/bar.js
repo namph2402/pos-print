@@ -14,8 +14,6 @@ module.exports = (item, info = null) => {
             padding: 0;
             font-family: Arial;
             font-size: 13px;
-            transform: rotate(180deg);
-            transform-origin: center center;
           }
           * {
             box-sizing: border-box;
@@ -25,7 +23,7 @@ module.exports = (item, info = null) => {
           .label {
             width: 43mm;
             height: 25mm;
-            margin: 3mm 4mm 2mm 1mm;
+            margin: 3mm 2mm 2mm 4mm;
             padding: 0;
           }
           .row {

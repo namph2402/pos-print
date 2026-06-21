@@ -247,6 +247,7 @@ async function retry(fn, retries = 2) {
 // IMAGE CACHE
 // =========================
 async function loadImageToBase64(url) {
+
   if (!url) return "";
 
   const cached = imageCache.get(url);
@@ -267,6 +268,7 @@ async function loadImageToBase64(url) {
     imageCache.set(url, { data: result, time: Date.now() });
     return result;
   } catch {
+    console.error(err);
     return "";
   }
 }

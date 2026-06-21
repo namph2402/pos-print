@@ -81,52 +81,55 @@ module.exports = (items, info) => {
                                 <p style="margin: 0; text-align: center">${item.quantity}</p>
                             </td>
                             <td>
-                                <p style="margin: 0; text-align: right; font-size: 11px">${item.price_number.toLocaleString('VND')}</p>
+                                <p style="margin: 0; text-align: right; font-size: 11px">${item.price_number.toLocaleString('VND')}đ</p>
                             </td>
                             <td>
-                                <p style="margin: 0; text-align: right; font-size: 11px">${(item.quantity * item.price_number).toLocaleString('VND')}</p>
+                                <p style="margin: 0; text-align: right; font-size: 11px">${(item.quantity * item.price_number).toLocaleString('VND')}đ</p>
                             </td>
                         </tr>
                     `).join("")}
                         <tr>
-                            <td><strong>Tổng</strong></td>
+                            <td><strong>Tổng tiền hàng</strong></td>
                             <td></td>
                             <td></td>
                             <td>
-                                <p style="margin: 0; text-align: right; font-size: 11px">${items.amount.toLocaleString('VND')}</p>
+                                <p style="margin: 0; text-align: right; font-size: 11px; font-weight: bold">${items.amount.toLocaleString('VND')}đ</p>
                             </td>
                         </tr>
                         <tr>
                             <td colspan="3"><strong>Giảm giá</strong></td>
                             <td>
-                                <p style="margin: 0; text-align: right; font-size: 11px">${(items.discount).toLocaleString('VND')}</p>
+                                <p style="margin: 0; text-align: right; font-size: 11px; font-weight: bold"">${(items.discount).toLocaleString('VND')}đ</p>
                             </td>
                         </tr>
                         <tr>
                             <td colspan="3"><strong>Thuế VAT</strong></td>
                             <td>
-                                <p style="margin: 0; text-align: right; font-size: 11px">${items.vat.toLocaleString('VND')}</p>
+                                <p style="margin: 0; text-align: right; font-size: 11px; font-weight: bold"">${items.vat.toLocaleString('VND')}đ</p>
                             </td>
                         </tr>
                         <tr>
                             <td colspan="3"><strong>Tổng thanh toán</strong></td>
                             <td>
-                                <p style="margin: 0; text-align: right; font-size: 11px">${items.total_amount.toLocaleString('VND')}</p>
+                                <p style="margin: 0; text-align: right; font-size: 13px; font-weight: bold"">${items.total_amount.toLocaleString('VND')}đ</p>
                             </td>
                         </tr>
                     </tbody>
                 </table>
-                <div style="padding: 5px; text-align: center">
-                    <div style="margin-bottom: 5px; font-size: 14px">
-                        <strong>${info.bank.name || ""}</strong>
-                    </div>
-                    <div style="margin-bottom: 5px">
-                        <strong>${info.bank.type || ""}</strong>
-                        <span style="margin-left: 3px; font-size: 15px">${info.bank.number || ""}</span>
-                    </div>
-                    <div style="width: 70%; margin: auto">
-                        <img style="width: 100%; height: auto" alt="QR Code" src="${info.bank.qr_code || ""}" onerror="this.style.display='none'"/>
-                    </div>
+                <div style="padding: 5px; text-align: center; margin-top: 3px">
+                    ${info?.qr_code != '' ? `
+                        <div style="width: 70%; margin: auto">
+                            <img style="width: 100%; height: auto" alt="QR Code" src="${info.qr_code || ""}" onerror="this.style.display='none'"/>
+                        </div>
+                        ` : `
+                        <div style="margin-bottom: 5px; font-size: 14px">
+                            <strong>${info.bank.name || ""}</strong>
+                        </div>
+                        <div style="margin-bottom: 5px">
+                            <strong>${info.bank.type || ""}</strong>
+                            <span style="margin-left: 3px; font-size: 14px">${info.bank.number || ""}</span>
+                        </div>`
+                    }
                     <p>
                         Mọi thắc mắc xin vui lòng liên hệ
                         <span style="display: block; margin-top: 3px">Cửa hàng: ${info.phone}</span>
